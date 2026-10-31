@@ -1100,17 +1100,9 @@ angular.module('syncthing.core')
                     return;
                 }
                 $scope.currentDevice.deviceID = data.deviceID;
-                // Keep any addresses already configured (such as "dynamic"),
-                // so that tailcat is one of the ways to reach the device.
-                var addrs = ($scope.currentDevice._addressesStr || '').split(',').map(function (x) {
-                    return x.trim();
-                }).filter(function (x) {
-                    return x !== '';
-                });
-                if (addrs.indexOf(data.address) < 0) {
-                    addrs.push(data.address);
-                }
-                $scope.currentDevice._addressesStr = addrs.join(', ');
+                // A device joined by tailcat address is reached over tailcat
+                // only, so drop "dynamic" and any other address it had.
+                $scope.currentDevice._addressesStr = data.address;
             }).error(function (err) {
                 $scope.tailcatIdentify = {};
                 $scope.emitHTTPError(err);
@@ -1534,6 +1526,7 @@ angular.module('syncthing.core')
             if (conn.type.indexOf('relay') === 0) type = "relay";
             else if (conn.type.indexOf('quic') === 0) type = "quic";
             else if (conn.type.indexOf('tcp') === 0) type = "tcp";
+            else if (conn.type.indexOf('tailcat') === 0) type = "tailcat";
             else return type;
 
             if (conn.isLocal) type += "lan";
@@ -1555,6 +1548,9 @@ angular.module('syncthing.core')
                     return $translate.instant('TCP WAN');
                 case "tcplan":
                     return $translate.instant('TCP LAN');
+                case "tailcatwan":
+                case "tailcatlan":
+                    return $translate.instant('Tailcat');
                 default:
                     return $translate.instant('Disconnected');
             }
@@ -1567,6 +1563,9 @@ angular.module('syncthing.core')
                 return "reception-4";
             case "tcpwan":
             case "quicwan":
+                return "reception-3";
+            case "tailcatwan":
+            case "tailcatlan":
                 return "reception-3";
             case "relaylan":
                 return "reception-2";
@@ -1590,6 +1589,9 @@ angular.module('syncthing.core')
                     return $translate.instant('Using a direct TCP connection over WAN');
                 case "tcplan":
                     return $translate.instant('Using a direct TCP connection over LAN');
+                case "tailcatwan":
+                case "tailcatlan":
+                    return $translate.instant('Using a tailcat connection');
                 default:
                     return $translate.instant('Unknown');
             }

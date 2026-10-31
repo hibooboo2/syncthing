@@ -49,7 +49,7 @@ func (t *tailcatListener) serve(ctx context.Context) error {
 		return err
 	}
 
-	server, err := tcLinks.server(t.cfg.ConfigPath())
+	server, err := tcLinks.server(ctx, t.cfg.ConfigPath())
 	if err != nil {
 		slog.WarnContext(ctx, "Failed to listen (tailcat)", slogutil.Error(err))
 		return err
@@ -73,7 +73,9 @@ func (t *tailcatListener) serve(ctx context.Context) error {
 	// The tailcat address is deliberately not announced through discovery:
 	// it carries the tunnel's pre-shared key, which is ours to hand out, and
 	// is shared through the device identification dialog instead.
-	slog.InfoContext(ctx, "Tailcat listener starting", "address", tailcatURI(server.TailcatAddr(), port))
+	if addr, err := tcLinks.status(); err == nil {
+		slog.InfoContext(ctx, "Tailcat listener starting", "address", tailcatURI(addr, port))
+	}
 	defer slog.InfoContext(ctx, "Tailcat listener shutting down")
 
 	go func() {

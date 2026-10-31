@@ -719,6 +719,20 @@ func (s *service) resolveDialTargets(ctx context.Context, now time.Time, cfg con
 }
 
 func (s *service) resolveDeviceAddrs(ctx context.Context, cfg config.DeviceConfiguration) []string {
+	// A device that has a tailcat address is reached over tailcat only. Its
+	// address is stable and known, so discovery ("dynamic") and any other
+	// transports configured for it are ignored.
+	var tailcatAddrs []string
+	for _, addr := range cfg.Addresses {
+		if strings.HasPrefix(addr, "tailcat://") {
+			tailcatAddrs = append(tailcatAddrs, addr)
+		}
+	}
+	if len(tailcatAddrs) > 0 {
+		l.Debugf("Device %v is tailcat only, dialing %v", cfg.DeviceID.Short(), tailcatAddrs)
+		return stringutil.UniqueTrimmedStrings(tailcatAddrs)
+	}
+
 	var addrs []string
 	for _, addr := range cfg.Addresses {
 		if addr == "dynamic" {
