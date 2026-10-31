@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/syncthing/syncthing/lib/connections"
+	"github.com/syncthing/syncthing/lib/protocol"
 )
 
 type Service struct {
@@ -39,6 +40,22 @@ type Service struct {
 	externalAddressesReturnsOnCall map[int]struct {
 		result1 []string
 	}
+	IdentifyTailcatDeviceStub        func(context.Context, string) (protocol.DeviceID, string, error)
+	identifyTailcatDeviceMutex       sync.RWMutex
+	identifyTailcatDeviceArgsForCall []struct {
+		arg1 context.Context
+		arg2 string
+	}
+	identifyTailcatDeviceReturns struct {
+		result1 protocol.DeviceID
+		result2 string
+		result3 error
+	}
+	identifyTailcatDeviceReturnsOnCall map[int]struct {
+		result1 protocol.DeviceID
+		result2 string
+		result3 error
+	}
 	ListenerStatusStub        func() map[string]connections.ListenerStatusEntry
 	listenerStatusMutex       sync.RWMutex
 	listenerStatusArgsForCall []struct {
@@ -69,6 +86,18 @@ type Service struct {
 	}
 	serveReturnsOnCall map[int]struct {
 		result1 error
+	}
+	TailcatAddressStub        func() (string, error)
+	tailcatAddressMutex       sync.RWMutex
+	tailcatAddressArgsForCall []struct {
+	}
+	tailcatAddressReturns struct {
+		result1 string
+		result2 error
+	}
+	tailcatAddressReturnsOnCall map[int]struct {
+		result1 string
+		result2 error
 	}
 	invocations      map[string][][]interface{}
 	invocationsMutex sync.RWMutex
@@ -231,6 +260,74 @@ func (fake *Service) ExternalAddressesReturnsOnCall(i int, result1 []string) {
 	fake.externalAddressesReturnsOnCall[i] = struct {
 		result1 []string
 	}{result1}
+}
+
+func (fake *Service) IdentifyTailcatDevice(arg1 context.Context, arg2 string) (protocol.DeviceID, string, error) {
+	fake.identifyTailcatDeviceMutex.Lock()
+	ret, specificReturn := fake.identifyTailcatDeviceReturnsOnCall[len(fake.identifyTailcatDeviceArgsForCall)]
+	fake.identifyTailcatDeviceArgsForCall = append(fake.identifyTailcatDeviceArgsForCall, struct {
+		arg1 context.Context
+		arg2 string
+	}{arg1, arg2})
+	stub := fake.IdentifyTailcatDeviceStub
+	fakeReturns := fake.identifyTailcatDeviceReturns
+	fake.recordInvocation("IdentifyTailcatDevice", []interface{}{arg1, arg2})
+	fake.identifyTailcatDeviceMutex.Unlock()
+	if stub != nil {
+		return stub(arg1, arg2)
+	}
+	if specificReturn {
+		return ret.result1, ret.result2, ret.result3
+	}
+	return fakeReturns.result1, fakeReturns.result2, fakeReturns.result3
+}
+
+func (fake *Service) IdentifyTailcatDeviceCallCount() int {
+	fake.identifyTailcatDeviceMutex.RLock()
+	defer fake.identifyTailcatDeviceMutex.RUnlock()
+	return len(fake.identifyTailcatDeviceArgsForCall)
+}
+
+func (fake *Service) IdentifyTailcatDeviceCalls(stub func(context.Context, string) (protocol.DeviceID, string, error)) {
+	fake.identifyTailcatDeviceMutex.Lock()
+	defer fake.identifyTailcatDeviceMutex.Unlock()
+	fake.IdentifyTailcatDeviceStub = stub
+}
+
+func (fake *Service) IdentifyTailcatDeviceArgsForCall(i int) (context.Context, string) {
+	fake.identifyTailcatDeviceMutex.RLock()
+	defer fake.identifyTailcatDeviceMutex.RUnlock()
+	argsForCall := fake.identifyTailcatDeviceArgsForCall[i]
+	return argsForCall.arg1, argsForCall.arg2
+}
+
+func (fake *Service) IdentifyTailcatDeviceReturns(result1 protocol.DeviceID, result2 string, result3 error) {
+	fake.identifyTailcatDeviceMutex.Lock()
+	defer fake.identifyTailcatDeviceMutex.Unlock()
+	fake.IdentifyTailcatDeviceStub = nil
+	fake.identifyTailcatDeviceReturns = struct {
+		result1 protocol.DeviceID
+		result2 string
+		result3 error
+	}{result1, result2, result3}
+}
+
+func (fake *Service) IdentifyTailcatDeviceReturnsOnCall(i int, result1 protocol.DeviceID, result2 string, result3 error) {
+	fake.identifyTailcatDeviceMutex.Lock()
+	defer fake.identifyTailcatDeviceMutex.Unlock()
+	fake.IdentifyTailcatDeviceStub = nil
+	if fake.identifyTailcatDeviceReturnsOnCall == nil {
+		fake.identifyTailcatDeviceReturnsOnCall = make(map[int]struct {
+			result1 protocol.DeviceID
+			result2 string
+			result3 error
+		})
+	}
+	fake.identifyTailcatDeviceReturnsOnCall[i] = struct {
+		result1 protocol.DeviceID
+		result2 string
+		result3 error
+	}{result1, result2, result3}
 }
 
 func (fake *Service) ListenerStatus() map[string]connections.ListenerStatusEntry {
@@ -398,6 +495,62 @@ func (fake *Service) ServeReturnsOnCall(i int, result1 error) {
 	fake.serveReturnsOnCall[i] = struct {
 		result1 error
 	}{result1}
+}
+
+func (fake *Service) TailcatAddress() (string, error) {
+	fake.tailcatAddressMutex.Lock()
+	ret, specificReturn := fake.tailcatAddressReturnsOnCall[len(fake.tailcatAddressArgsForCall)]
+	fake.tailcatAddressArgsForCall = append(fake.tailcatAddressArgsForCall, struct {
+	}{})
+	stub := fake.TailcatAddressStub
+	fakeReturns := fake.tailcatAddressReturns
+	fake.recordInvocation("TailcatAddress", []interface{}{})
+	fake.tailcatAddressMutex.Unlock()
+	if stub != nil {
+		return stub()
+	}
+	if specificReturn {
+		return ret.result1, ret.result2
+	}
+	return fakeReturns.result1, fakeReturns.result2
+}
+
+func (fake *Service) TailcatAddressCallCount() int {
+	fake.tailcatAddressMutex.RLock()
+	defer fake.tailcatAddressMutex.RUnlock()
+	return len(fake.tailcatAddressArgsForCall)
+}
+
+func (fake *Service) TailcatAddressCalls(stub func() (string, error)) {
+	fake.tailcatAddressMutex.Lock()
+	defer fake.tailcatAddressMutex.Unlock()
+	fake.TailcatAddressStub = stub
+}
+
+func (fake *Service) TailcatAddressReturns(result1 string, result2 error) {
+	fake.tailcatAddressMutex.Lock()
+	defer fake.tailcatAddressMutex.Unlock()
+	fake.TailcatAddressStub = nil
+	fake.tailcatAddressReturns = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
+}
+
+func (fake *Service) TailcatAddressReturnsOnCall(i int, result1 string, result2 error) {
+	fake.tailcatAddressMutex.Lock()
+	defer fake.tailcatAddressMutex.Unlock()
+	fake.TailcatAddressStub = nil
+	if fake.tailcatAddressReturnsOnCall == nil {
+		fake.tailcatAddressReturnsOnCall = make(map[int]struct {
+			result1 string
+			result2 error
+		})
+	}
+	fake.tailcatAddressReturnsOnCall[i] = struct {
+		result1 string
+		result2 error
+	}{result1, result2}
 }
 
 func (fake *Service) Invocations() map[string][][]interface{} {

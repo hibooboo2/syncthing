@@ -50,6 +50,10 @@ var (
 		netutil.AddressURL("tcp", net.JoinHostPort("0.0.0.0", strconv.Itoa(DefaultTCPPort))),
 		"dynamic+https://relays.syncthing.net/endpoint",
 		netutil.AddressURL("quic", net.JoinHostPort("0.0.0.0", strconv.Itoa(DefaultQUICPort))),
+		// A tailcat listener and one per peer tailcat address in the device
+		// configuration make up the tailcat transport. The port is the port
+		// inside the tailcat tunnel.
+		netutil.AddressURL("tailcat", net.JoinHostPort("", strconv.Itoa(DefaultTCPPort))),
 	}
 	// DefaultDiscoveryServersV4 should be substituted when the configuration
 	// contains <globalAnnounceServer>default-v4</globalAnnounceServer>.
@@ -157,6 +161,7 @@ func (cfg *Configuration) ProbeFreePorts() error {
 			netutil.AddressURL("tcp", net.JoinHostPort("0.0.0.0", strconv.Itoa(port))),
 			"dynamic+https://relays.syncthing.net/endpoint",
 			netutil.AddressURL("quic", net.JoinHostPort("0.0.0.0", strconv.Itoa(port))),
+			netutil.AddressURL("tailcat", net.JoinHostPort("", strconv.Itoa(DefaultTCPPort))),
 		}
 	}
 

@@ -78,6 +78,8 @@ angular.module('syncthing.core')
         $scope.configInSync = true;
         $scope.connections = {};
         $scope.errors = [];
+        $scope.tailcat = {};
+        $scope.tailcatIdentify = {};
         $scope.model = {};
         $scope.myID = '';
         $scope.devices = {};
@@ -1073,6 +1075,48 @@ angular.module('syncthing.core')
             refreshErrors();
         };
 
+        $scope.refreshTailcat = function () {
+            $http.get(urlbase + '/svc/tailcat').success(function (data) {
+                $scope.tailcat = data;
+            }).error($scope.emitHTTPError);
+        };
+
+        // identifyTailcatDevice asks the device at the entered tailcat address
+        // which device ID it has, so that a device can be added by its tailcat
+        // address instead of by its device ID. On success the address of the
+        // other device is added to the addresses of the new device.
+        $scope.identifyTailcatDevice = function () {
+            var address = ($scope.currentDevice.tailcatAddress || '').trim();
+            if (!address) {
+                return;
+            }
+            $scope.tailcatIdentify = { busy: true };
+            $http.get(urlbase + '/svc/tailcat/identify', {
+                params: { address: address },
+            }).success(function (data) {
+                $scope.tailcatIdentify = {};
+                if (data.error) {
+                    $scope.tailcatIdentify.error = data.error;
+                    return;
+                }
+                $scope.currentDevice.deviceID = data.deviceID;
+                // Keep any addresses already configured (such as "dynamic"),
+                // so that tailcat is one of the ways to reach the device.
+                var addrs = ($scope.currentDevice._addressesStr || '').split(',').map(function (x) {
+                    return x.trim();
+                }).filter(function (x) {
+                    return x !== '';
+                });
+                if (addrs.indexOf(data.address) < 0) {
+                    addrs.push(data.address);
+                }
+                $scope.currentDevice._addressesStr = addrs.join(', ');
+            }).error(function (err) {
+                $scope.tailcatIdentify = {};
+                $scope.emitHTTPError(err);
+            });
+        };
+
         $scope.folderStatus = function (folderCfg) {
             if (folderCfg.paused) {
                 return 'paused';
@@ -1622,6 +1666,9 @@ angular.module('syncthing.core')
 
         $scope.showDeviceIdentification = function (deviceCfg) {
             $scope.currentDevice = deviceCfg;
+            if (deviceCfg.deviceID === $scope.myID) {
+                $scope.refreshTailcat();
+            }
             showModal('#idqr');
         };
 
@@ -2017,6 +2064,9 @@ angular.module('syncthing.core')
         $scope.editDeviceExisting = function (deviceCfg) {
             $scope.currentDevice = $.extend({}, deviceCfg);
             $scope.currentDevice._editing = "existing";
+            if (deviceCfg.deviceID === $scope.myID) {
+                $scope.refreshTailcat();
+            }
             $scope.willBeReintroducedBy = undefined;
             if (deviceCfg.introducedBy) {
                 var introducerDevice = $scope.devices[deviceCfg.introducedBy];
@@ -2066,6 +2116,7 @@ angular.module('syncthing.core')
 
         $scope.addDevice = function (deviceID, name) {
             $scope.discoveryUnknown = [];
+            $scope.tailcatIdentify = {};
             for (var id in $scope.discoveryCache) {
                 if ($scope.discoveryUnknown.length === 100) {
                     break;
@@ -2079,6 +2130,7 @@ angular.module('syncthing.core')
                 $scope.currentDevice = p.data;
                 $scope.currentDevice.name = name;
                 $scope.currentDevice.deviceID = deviceID;
+                $scope.currentDevice._addBy = 'deviceID';
                 if (deviceID) {
                     $scope.currentDevice._editing = "new-pending";
                 } else {
@@ -2115,6 +2167,8 @@ angular.module('syncthing.core')
                 return x.trim();
             });
             delete $scope.currentDevice._addressesStr;
+            delete $scope.currentDevice._addBy;
+            delete $scope.currentDevice.tailcatAddress;
             if ($scope.currentDevice._editing == "defaults") {
                 $scope.config.defaults.device = $scope.currentDevice;
             } else {
@@ -3558,6 +3612,13 @@ angular.module('syncthing.core')
             var deviceID = $scope.currentDevice.deviceID;
             var deviceName = $scope.deviceName($scope.currentDevice);
 
+            // Our own tailcat address, when we have one, is part of what the
+            // other device needs to set up a tailcat tunnel to us.
+            var tailcatLine = '';
+            if (deviceID === $scope.myID && $scope.tailcat.address) {
+                tailcatLine = $translate.instant('Tailcat Address') + ': ' + $scope.tailcat.address;
+            }
+
             // Title and footer can be reused between different sharing
             // methods, hence we define them separately before the body.
             var title = $translate.instant('Syncthing device ID for "{%devicename%}"', {devicename: deviceName});
@@ -3573,9 +3634,12 @@ angular.module('syncthing.core')
                     params.body = [
                         $translate.instant('To connect with the Syncthing device named "{%devicename%}", add a new remote device on your end with this ID:', {devicename: deviceName}),
                         deviceID,
+                        tailcatLine,
                         $translate.instant("Syncthing is a continuous file synchronization program. It synchronizes files between two or more computers in real time, safely protected from prying eyes. Your data is your data alone and you deserve to choose where it is stored, whether it is shared with some third party, and how it's transmitted over the internet."),
                         footer
-                    ].join('\r\n\r\n');
+                    ].filter(function (line) {
+                        return line !== '';
+                    }).join('\r\n\r\n');
                     break;
                 case "sms":
                     params.heading = $translate.instant("Share by SMS");

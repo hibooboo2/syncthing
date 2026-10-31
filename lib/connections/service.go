@@ -133,6 +133,15 @@ type Service interface {
 	ListenerStatus() map[string]ListenerStatusEntry
 	ConnectionStatus() map[string]ConnectionStatusEntry
 	NATType() string
+
+	// TailcatAddress returns our own tailcat address, as a dialable
+	// tailcat:// URI, and why there is none when there isn't.
+	TailcatAddress() (string, error)
+
+	// IdentifyTailcatDevice connects to the device at the given tailcat
+	// address and returns its device ID together with the canonical
+	// tailcat:// URI of that device.
+	IdentifyTailcatDevice(ctx context.Context, address string) (protocol.DeviceID, string, error)
 }
 
 type ListenerStatusEntry struct {
@@ -1027,6 +1036,64 @@ func (s *service) NATType() string {
 		}
 	}
 	return "unknown"
+}
+
+func (s *service) TailcatAddress() (string, error) {
+	addr, err := tcLinks.status()
+	if err != nil {
+		return "", err
+	}
+
+	port := uint16(0)
+	s.listenersMut.RLock()
+	for _, listener := range s.listeners {
+		if tailcatListener, ok := listener.(*tailcatListener); ok && tailcatListener.active() {
+			port = tailcatListener.listenPort()
+			break
+		}
+	}
+	s.listenersMut.RUnlock()
+
+	if port == 0 {
+		return "", errors.New("tailcat is not listening")
+	}
+
+	return tailcatURI(addr, port), nil
+}
+
+func (s *service) IdentifyTailcatDevice(ctx context.Context, address string) (protocol.DeviceID, string, error) {
+	addr, port, err := parseTailcatAddr(address)
+	if err != nil {
+		return protocol.EmptyDeviceID, "", err
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, tailcatDialTimeout)
+	defer cancel()
+
+	conn, err := tcLinks.dial(ctx, addr, port)
+	if err != nil {
+		return protocol.EmptyDeviceID, "", err
+	}
+
+	// The BEP TCP handshake is enough to see the peer's certificate, which is
+	// all we need: the device ID is the hash of it.
+	tc := tls.Client(conn, s.tlsCfg)
+	defer tc.Close()
+	if err := tlsTimedHandshake(tc); err != nil {
+		return protocol.EmptyDeviceID, "", err
+	}
+
+	certs := tc.ConnectionState().PeerCertificates
+	if len(certs) != 1 {
+		return protocol.EmptyDeviceID, "", fmt.Errorf("expected one certificate from peer, got %d", len(certs))
+	}
+
+	id := protocol.NewDeviceID(certs[0].Raw)
+	if id == s.myID {
+		return protocol.EmptyDeviceID, "", errors.New("that tailcat address belongs to this device")
+	}
+
+	return id, tailcatURI(addr, port), nil
 }
 
 func getDialerFactory(cfg config.Configuration, uri *url.URL) (dialerFactory, error) {

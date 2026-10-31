@@ -272,6 +272,8 @@ func (s *service) Serve(ctx context.Context) error {
 	restMux.HandlerFunc(http.MethodGet, "/rest/svc/lang", s.getLang)                          // -
 	restMux.HandlerFunc(http.MethodGet, "/rest/svc/report", s.getReport)                      // -
 	restMux.HandlerFunc(http.MethodGet, "/rest/svc/random/string", s.getRandomString)         // [length]
+	restMux.HandlerFunc(http.MethodGet, "/rest/svc/tailcat", s.getTailcat)                    // -
+	restMux.HandlerFunc(http.MethodGet, "/rest/svc/tailcat/identify", s.getTailcatIdentify)   // address
 	restMux.HandlerFunc(http.MethodGet, "/rest/system/browse", s.getSystemBrowse)             // current
 	restMux.HandlerFunc(http.MethodGet, "/rest/system/connections", s.getSystemConnections)   // -
 	restMux.HandlerFunc(http.MethodGet, "/rest/system/discovery", s.getSystemDiscovery)       // -
@@ -1444,6 +1446,33 @@ func (*service) getDeviceID(w http.ResponseWriter, r *http.Request) {
 			"error": err.Error(),
 		})
 	}
+}
+
+// getTailcat returns our own tailcat address, which other devices need in
+// order to sync with us over tailcat.
+func (s *service) getTailcat(w http.ResponseWriter, _ *http.Request) {
+	address, err := s.connectionsService.TailcatAddress()
+	res := map[string]string{"address": address}
+	if err != nil {
+		res["error"] = err.Error()
+	}
+	sendJSON(w, res)
+}
+
+// getTailcatIdentify connects to the device at the given tailcat address and
+// returns its device ID, so that a device can be added by its tailcat address
+// instead of by its device ID.
+func (s *service) getTailcatIdentify(w http.ResponseWriter, r *http.Request) {
+	address := r.URL.Query().Get("address")
+	id, uri, err := s.connectionsService.IdentifyTailcatDevice(r.Context(), address)
+	if err != nil {
+		sendJSON(w, map[string]string{"error": err.Error()})
+		return
+	}
+	sendJSON(w, map[string]string{
+		"deviceID": id.String(),
+		"address":  uri,
+	})
 }
 
 func (*service) getLang(w http.ResponseWriter, r *http.Request) {

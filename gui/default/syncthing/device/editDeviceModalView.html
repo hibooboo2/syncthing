@@ -8,7 +8,36 @@
       </ul>
       <div class="tab-content">
         <div id="device-general" class="tab-pane in active">
-          <div ng-if="!editingDeviceDefaults()" class="form-group" ng-class="{'has-error': deviceEditor.deviceID.$invalid && deviceEditor.deviceID.$dirty}" ng-init="loadFormIntoScope(deviceEditor)">
+          <div class="form-group" ng-if="editingDeviceNew()">
+            <label translate>Add Device By</label>
+            <div>
+              <label class="radio-inline">
+                <input type="radio" ng-model="currentDevice._addBy" value="deviceID">
+                <span translate>Device ID</span>
+              </label>
+              <label class="radio-inline">
+                <input type="radio" ng-model="currentDevice._addBy" value="tailcat">
+                <span translate>Tailcat Address</span>
+              </label>
+            </div>
+            <p class="help-block" translate ng-if="currentDevice._addBy === 'tailcat'">Paste the tailcat address of the other device, as shown in its "Actions &gt; Show ID" dialog. The device ID is looked up through the tailcat tunnel and need not be known by hand.</p>
+          </div>
+          <div class="form-group" ng-if="editingDeviceNew() && currentDevice._addBy === 'tailcat'">
+            <label translate for="tailcatAddress">Tailcat Address</label>
+            <div class="input-group">
+              <input name="tailcatAddress" id="tailcatAddress" class="form-control text-monospace" type="text" ng-model="currentDevice.tailcatAddress" placeholder="tailcat://…" />
+              <div class="input-group-btn">
+                <button type="button" class="btn btn-default" ng-click="identifyTailcatDevice()" ng-disabled="!currentDevice.tailcatAddress || tailcatIdentify.busy">
+                  <span class="fas" ng-class="tailcatIdentify.busy ? 'fa-spinner fa-spin' : 'fa-search'"></span>&nbsp;<span translate>Identify</span>
+                </button>
+              </div>
+            </div>
+            <p class="help-block" ng-if="currentDevice.deviceID">
+              <span translate>Identified device</span>:&nbsp;<span class="text-monospace select-on-click">{{currentDevice.deviceID}}</span>
+            </p>
+            <p class="help-block text-danger" ng-if="tailcatIdentify.error">{{tailcatIdentify.error}}</p>
+          </div>
+          <div ng-if="!editingDeviceDefaults()" ng-hide="editingDeviceNew() && currentDevice._addBy === 'tailcat'" class="form-group" ng-class="{'has-error': deviceEditor.deviceID.$invalid && deviceEditor.deviceID.$dirty}" ng-init="loadFormIntoScope(deviceEditor)">
             <label translate for="deviceID">Device ID</label>
             <div class="input-group">
               <input ng-if="editingDeviceNew()" name="deviceID" id="deviceID" class="form-control text-monospace" type="text" ng-model="currentDevice.deviceID" required="" valid-deviceid list="discovery-list" aria-required="true" />

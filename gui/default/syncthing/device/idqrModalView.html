@@ -1,6 +1,23 @@
 <modal id="idqr" status="info" icon="fas fa-qrcode" heading="{{'Device Identification' | translate}} - {{deviceName(currentDevice)}}" large="yes" closeable="yes">
   <div class="modal-body text-center">
     <div class="well well-sm text-monospace select-on-click"><strong>{{currentDevice.deviceID}}</strong></div>
+    <div ng-if="currentDevice.deviceID == myID && tailcat.address">
+      <div class="text-left">
+        <label translate for="tailcatAddressSelf">Tailcat Address</label>
+        <div class="input-group">
+          <input id="tailcatAddressSelf" class="form-control text-monospace" type="text" readonly value="{{tailcat.address}}" />
+          <div class="input-group-btn">
+            <button type="button" class="btn btn-default" ng-click="copyToClipboard($event, tailcat.address)" tooltip data-original-title="{{ 'Copy' | translate }}" aria-label="{{ 'Copy' | translate }}">
+              <span class="fa fa-lg fa-clone"></span>
+            </button>
+          </div>
+        </div>
+        <p class="help-block" translate>Another device can add this device by entering this tailcat address instead of the device ID. Treat it as a secret: it grants access to this device's tailcat tunnel. Only works while the tailcat listener is running.</p>
+      </div>
+    </div>
+    <div ng-if="currentDevice.deviceID == myID && tailcat.error">
+      <p class="help-block text-danger"><span translate>Tailcat address unavailable</span>: {{tailcat.error}}</p>
+    </div>
     <div ng-if="currentDevice.deviceID">
       <img class="img-thumbnail" ng-src="qr/?text={{currentDevice.deviceID}}" height="328" width="328" alt="{{'QR code' | translate}}" />
       <div class="btn-group-vertical" style="vertical-align: top;">
